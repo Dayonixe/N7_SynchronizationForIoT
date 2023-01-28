@@ -8,29 +8,29 @@ Team : Nouhaila A. & Théo Pirouelle
 
 ---
 
-## Installation et mise en place
+## Installation and set up
 
-Il faut dans un premier temps télécharger l'IDE de Arduino en version 1.8.x : [Download link](https://www.arduino.cc/en/software)
+First of all, you have to download the Arduino IDE in version 1.8.x : [Download link](https://www.arduino.cc/en/software)
 
-On peut ensuite installer Teensy : [Download link](https://www.pjrc.com/teensy/td_download.html)
+We can then install Teensy : [Download link](https://www.pjrc.com/teensy/td_download.html)
 
-Et finalement on peut installer la library DecaDuino : [Download link](https://github.com/irit-rmess/DecaDuino)
+And finally we can install the DecaDuino library : [Download link](https://github.com/irit-rmess/DecaDuino)
 
-Il suffit d'accéder au menu `Sketch > Include Library > Add .ZIP Library`
+Simply access the menu `Sketch > Include Library > Add .ZIP Library`
 
-Pour pouvoir ensuite utiliser l'IDE, il faut bien penser à séléctionner la board dans le menu `Tools > Board > Teensuduino > Teensy 3.2 / 3.1`
+To be able to use the IDE, you have to select the board in the menu `Tools > Board > Teensuduino > Teensy 3.2 / 3.1`
 
 ---
 
-## Prise en main du transceiver UWB
+## Getting started with the UWB transceiver
 
-### Prise en main des sketchs exemples
+### Getting to grips with the sample sketches
 
-On peut constater l’absence d’adressage dans les messages, il serait préférable de mettre en place une isolation logique pour ne recevoir que les messages qui nous concerne.
+We can see the lack of addressing in the messages, it would be better to set up a logical isolation to receive only the messages that concern us.
 
-On modifie uniquement `loop()` dans le code du *Receiver* et du *Sender*.
+We only modify `loop()` in the *Receiver* and *Sender* code.
 
-**Pour l’émetteur :**
+**For the transmitter:**
 
 ```c
 void loop() {
@@ -51,9 +51,9 @@ void loop() {
 }
 ```
 
-Sur le code initial, on rajoute `txData[0] = 7;` pour avoir un “champ” d’adresse (avec `7` comme identificateur) afin d’avoir une isolation logique. Pour le reste de notre message, on laisse la boucle `for` de remplissage automatique à partir de l’indice 1 de notre tableau `txData`.
+On the initial code, we add `txData[0] = 7;` to have an address field (with `7` as identifier) in order to have a logical isolation. For the rest of our message, we leave the `for` loop of automatic filling from index 1 of our `txData` array.
 
-**Pour le récepteur :**
+**For the receiver:**
 
 ```c
 void loop() {
@@ -79,9 +79,9 @@ void loop() {
 }
 ```
 
-Sur le code initial, on rajoute la condition `if (rxData[0] == 7)` pour filtrer uniquement sur les messages qui nous concerne. Le reste de la trame est affichée avec la boucle `for`.
+On the initial code, we add the condition `if (rxData[0] == 7)` to filter only on the messages which concern us. The rest of the frame is displayed with the `for` loop.
 
-On obtient alors l’affichage suivant :
+We then obtain the following display:
 
 ```
 #1 120bytes received: |7|1|2|3|4|5|6|7|8|9|A|B|C|D|E|F|10|11|12|13|14|15|16|17|18|19|1A|1B|1C|1D|1E|1F|20|21|22|23|24|25|26|27|28|29|2A|2B|2C|2D|2E|2F|30|31|32|33|34|35|36|37|38|39|3A|3B|3C|3D|3E|3F|40|41|42|43|44|45|46|47|48|49|4A|4B|4C|4D|4E|4F|50|51|52|53|54|55|56|57|58|59|5A|5B|5C|5D|5E|5F|60|61|62|63|64|65|66|67|68|69|6A|6B|6C|6D|6E|6F|70|71|72|73|74|75|76|77|
@@ -97,83 +97,83 @@ On obtient alors l’affichage suivant :
 #6 120bytes received: |7|1|2|3|4|5|6|7|8|9|A|B|C|D|E|F|10|11|12|13|14|15|16|17|18|19|1A|1B|1C|1D|1E|1F|20|21|22|23|24|25|26|27|28|29|2A|2B|2C|2D|2E|2F|30|31|32|33|34|35|36|37|38|39|3A|3B|3C|3D|3E|3F|40|41|42|43|44|45|46|47|48|49|4A|4B|4C|4D|4E|4F|50|51|52|53|54|55|56|57|58|59|5A|5B|5C|5D|5E|5F|60|61|62|63|64|65|66|67|68|69|6A|6B|6C|6D|6E|6F|70|71|72|73|74|75|76|77|
 ```
 
-On remarque que le récepteur reçoie seulement les trames d’adresse 7.
+We notice that the receiver receives only the frames of address 7.
 
-### Conception d’un premier protocole simple
+### Design of a first simple protocol
 
-Nous allons à présent implémenter un simple `Data+ACK` avec la valeur `timeout` paramétrable.
+We will now implement a simple `Data+ACK` with the value `timeout` configurable.
 
-Le protocole est le suivant :
-
-<p align="center">
-  <img src="/doc/dataAck.png" alt="dataAck" width="700"/>
-</p>
-
-Lorsque l’émetteur envoie un message, si le récepteur répond dans les temps, nous avons un échange simple avec un message (similaire à la partie précédente avec le champ d’adresse) et un message de bonne réception (`ACK`) similaire au message d’émission mais dans l’autre sens. Cependant, si le récepteur ne répond pas avant la fin du timer, l’émetteur retransmet automatiquement son message.
-
-Dans cette partie comme nos deux nœuds, `Master` et `Slave`, doivent émettre et recevoir des messages, il faut faire attention à indiquer aux bons moments quand est-ce qu’ils sont prêt à écouter ou non avec `plmeRxEnableRequest()` et `plmeRxDisableRequest()`.
-
-**Pour l’émetteur :**
-
-La partie de transmission de message est la même que la partie précédente. Pour la partie d’attente de l’ACK, nous bouclons de manière infini sur la réception d’un ACK. Si celui-ci n’arrive pas à temps, nous passons dans la condition du `timeout` qui est atteint, on retransmet alors un message.
-
-**Pour le récepteur :**
-
-Le récepteur écoute les messages qui passent. Si un message à l’adresse qui nous intéresse (adresse `7` ici), on affiche le message comme dans la partie précédente puis on émet un message de réception (`ACK`). On se remet ensuite en mode d’écoute et on attend un nouveau message.
-
-## Synchronisation MAC
-
-### Implémentation d’une synchronisation en étoile
-
-Nous allons à présent implémenter un protocole de synchronisation en étoile.
-
-Le protocole est le suivant :
+The protocol is as follows:
 
 <p align="center">
-  <img src="/doc/star.png" alt="star" width="700"/>
+  <img src="/doc/dataAck.png" alt="dataAck" width="320"/>
 </p>
 
-Régulièrement, le nœud `Master` diffuse un message `clap` indiquant l’heure à laquelle il envoie le `clap`. Les nœuds `Slave` reçoivent ce message, calculent leur `offset` avec le nœud `Master` et l’appliquent sur leur heure locale.
+When the sender sends a message, if the receiver responds in time, we have a simple exchange with a message (similar to the previous part with the address field) and a good reception message (`ACK`) similar to the sending message but in the other direction. However, if the receiver does not respond before the end of the timer, the sender automatically retransmits his message.
 
-**Pour l’émetteur :**
+In this part as our two nodes, `Master` and `Slave`, have to send and receive messages, we have to be careful to indicate at the right times when they are ready to listen or not with `plmeRxEnableRequest()` and `plmeRxDisableRequest()`.
 
-L’émetteur envoie de manière régulière (ici toutes les 10 secondes) une trame qui contient l’adresse (configuré de la même manière que les parties précédentes) et le timestamp de la dernière trame transmise.
+**For the transmitter:**
 
-**Pour le récepteur :**
+The message transmission part is the same as the previous part. For the part of waiting for the ACK, we loop in an infinite way on the reception of an ACK. If this one does not arrive in time, we pass in the condition of the `timeout` which is reached, we then retransmit a message.
 
-Le récepteur se met en écoute, lorsqu’il reçoit des trames il les affiches comme dans les parties précédentes. Lors de la réception de la première trame, il enregistre son `timestamp`, puis à la réception de la seconde trame, il extrait le `timestamp` de la première trame du `Master` contenu dans son message. Avec son `timestamp` et celui du `Master`, il peut calculer son `offset`.
+**For the receiver:**
 
-Cela n’a pas été implémenté ici mais il faudrait modifier l’horloge local du récepteur en ajoutant ou soustrayant l’`offset` pour se synchroniser avec le `Master`.
+The receiver listens to the passing messages. If there is a message at the address we are interested in (address `7` here), we display the message as in the previous part and then we send a reception message (`ACK`). We then go back to listening mode and wait for a new message.
 
-### Implémentation d’une synchronisation de SiSP
+## MAC synchronization
 
-Nous allons à présent implémenter le protocole de synchronisation de SiSP.
+### Implementation of a star synchronization
 
-Le protocole est le suivant :
+We will now implement a star synchronization protocol.
+
+The protocol is as follows:
 
 <p align="center">
-  <img src="/doc/sisp.png" alt="sisp" width="700"/>
+  <img src="/doc/star.png" alt="star" width="480"/>
 </p>
 
-Dans ce protocole il n’y a plus de maître ou d’esclave, il s’agit simplement de nœuds qui se partagent une horloge “commune” (construire au fil du temps). De plus, dans cette partie tout les nœuds possèdent le même code.
+On a regular basis, the `Master` node broadcasts a `clap` message indicating the time at which it sends the `clap`. Slave nodes receive this message, calculate their `offset` with the `Master` node and apply it to their local time.
 
-Tous les nœuds sont d'accord sur une horloge partagée. Chaque nœud possède deux compteurs, `LCLK` et `SCLK`. `LCLK` est l'horloge locale, incrémentée à la vitesse de l'horloge locale et `SCLK` est l'horloge partagée avec tous les autres nœuds. `SCLK` est initialisée avec `LCLK` au démarrage.
+**For the transmitter:**
 
-L’horloge `SCLK` est calculée sur chaque nœud avec la formule suivante :
+The sender sends regularly (here every 10 seconds) a frame which contains the address (configured in the same way as the previous parts) and the timestamp of the last transmitted frame.
+
+**For the receiver:**
+
+The receiver listens, when it receives frames it displays them as in the previous parts. When it receives the first frame, it records its `timestamp`, then when it receives the second frame, it extracts the `timestamp` of the first frame from the `Master` in its message. With his `timestamp` and that of the `Master`, he can calculate his `offset`.
+
+This has not been implemented here but it would be necessary to modify the local receiver clock by adding or subtracting the `offset` to synchronize with the `Master`.
+
+### Implementation of a SiSP synchronization
+
+We will now implement the SiSP synchronization protocol.
+
+The protocol is as follows:
+
+<p align="center">
+  <img src="/doc/sisp.png" alt="sisp" width="550"/>
+</p>
+
+In this protocol there is no more master or slave, it is simply nodes that share a "common" clock (built over time). Moreover, in this part all the nodes have the same code.
+
+All nodes agree on a shared clock. Each node has two counters, `LCLK` and `SCLK`. `LCLK` is the local clock, incremented at the local clock rate, and `SCLK` is the clock shared with all other nodes. `SCLK` is initialized with `LCLK` at startup.
+
+The `SCLK` clock is calculated on each node with the following formula:
 
 $$
 SCLK = \frac{LCLK+RCLK}{2}
 $$
 
-`RCLK` correspond à l’horloge reçu d’un autre nœud.
+`RCLK` corresponds to the clock received from another node.
 
-**Pour les nœuds :**
+**For nodes:**
 
-Le code utilise une horloge locale (`lclk`) pour mesurer le temps localement et une heure partagée (`sclk`) pour synchroniser l'horloge avec les autres nœuds dans le réseau.
+The code uses a local clock (`lclk`) to measure time locally and a shared time (`sclk`) to synchronize the clock with other nodes in the network.
 
-Il utilise une boucle principale dans laquelle il écoute pour les trames reçues toutes les secondes sauf toutes les 10 secondes où il envoie un message contenant son horloge partagée (`sclk`). Avec `printUint64()` on affiche l'horloge partagée.
+It uses a main loop in which it listens for received frames every second except every 10 seconds when it sends a message containing its shared clock (`sclk`). With `printUint64()` we display the shared clock.
 
-On obtient alors les résultats suivant :
+We then obtain the following results:
 
 ```
 send
@@ -213,41 +213,39 @@ Temps reçu : |0|38|70|E0|C0|81|3|7|
 Clock SCLK : 0381c0e070381c0e
 ```
 
-On remarque alors que sur les 2 nœuds les horloges `SCLK` tendent vers la même valeur sans jamais obtenir exactement la même ce qui est normal car il y a toujours un très léger décalage dû au matériel. De plus, entre le moment où le nœud reçoit un `SCLK` d’un autre nœud, calcul sa nouvelle valeur de `SCLK` et la retransmet aux autres nœuds, le temps continue de s’écouler et donc `SCLK` de s’incrémenter.
+We then notice that on the 2 nodes the `SCLK` clocks tend towards the same value without ever obtaining exactly the same one, which is normal because there is always a very slight offset due to the hardware. Moreover, between the moment when the node receives a `SCLK` from another node, calculates its new `SCLK` value and retransmits it to the other nodes, time continues to pass and thus `SCLK` continues to increment.
 
-## Ranging (synchronisation fine)
+## Ranging (fine synchronization)
 
-### Sketchs exemples
+### Sample sketches
 
-Nous allons commencer par prendre en main les différents sketchs d’exemple et comprendre le fonctionnement des protocoles Two-Way Ranging (`TWR`) et Symmetric Double Sided Two-Way Ranging (`SDS-TWR`).
-
-</aside>
+We will start by taking the various example sketches and understanding how the Two-Way Ranging (`TWR`) and Symmetric Double Sided Two-Way Ranging (`SDS-TWR`) protocols work.
 
 **Two-Way Ranging :**
 
-Le protocole est le suivant :
+The protocol is as follows:
 
 <p align="center">
-  <img src="/doc/twr.png" alt="twr" width="700"/>
+  <img src="/doc/twr.png" alt="twr" width="250"/>
 </p>
 
-Two-Way Ranging (`TWR`) est un protocole utilisé pour déterminer la distance entre deux dispositifs en utilisant la technique de mesure de temps de vol (`ToF`). Il utilise une transmission à double sens pour calculer la distance en mesurant le temps qu'il faut à un signal pour aller d'un dispositif à l'autre et retourner. On peut déterminer le `ToF` à l’aide de la formule suivante :
+Two-Way Ranging (`TWR`) is a protocol used to determine the distance between two devices using the time-of-flight (`ToF`) measurement technique. It uses a two-way transmission to calculate distance by measuring the time it takes for a signal to travel from one device to the other and back. The `ToF` can be determined using the following formula:
 
 $$
 ToF = \frac{t_4 - t_1 - (t_3 - t_2)}{2}
 $$
 
-On peut par la suite déterminer la distance entre le client et le serveur en multipliant le `ToF` à une `RANGING_UNIT`.
+We can then determine the distance between the client and the server by multiplying the `ToF` to a `RANGING_UNIT`.
 
-Cependant cette méthode donne des valeurs supérieurs à la réalité. Il est possible de compenser cette différence (`skew`) à l’aide de la formule suivante :
+However, this method gives higher values than the reality. It is possible to compensate for this difference (`skew`) with the following formula:
 
 $$
 ToF = \frac{t_4 - t_1 - (1 - skew * 10^{-6})(t_3 - t_2)}{2}
 $$
 
-On obtient alors des résultats bien plus proche de la réalité.
+The results are then much closer to reality.
 
-On peut le remarquer dans les résultats suivants :
+This can be seen in the following results:
 
 ```
 ToF			d				ToF_sk	d_sk
@@ -265,21 +263,21 @@ ToF			d				ToF_sk	d_sk
 
 **Symmetric Double Sided Two-Way Ranging :**
 
-Le protocole est le suivant :
+The protocol is as follows:
 
 <p align="center">
-  <img src="/doc/sdsTwr.png" alt="sdsTwr" width="700"/>
+  <img src="/doc/sdsTwr.png" alt="sdsTwr" width="250"/>
 </p>
 
-Symmetric Double Sided Two-Way Ranging (`SDS-TWR`) est une variante de `TWR` qui utilise une transmission à double sens symétrique pour améliorer la précision de la mesure de distance. Il utilise deux dispositifs pour émettre et recevoir des signaux simultanément, plutôt que d'utiliser un dispositif comme émetteur et l'autre comme récepteur. Cela permet de réduire les erreurs de mesure causées par des facteurs tels que les variations de la puissance de transmission et les décalages temporels. On peut déterminer le `ToF` à l’aide de la formule suivante :
+Symmetric Double Sided Two-Way Ranging (`SDS-TWR`) is a variant of `TWR` that uses symmetric two-way transmission to improve the accuracy of distance measurement. It uses two devices to transmit and receive signals simultaneously, rather than using one device as a transmitter and the other as a receiver. This reduces measurement errors caused by factors such as transmission power variations and time offsets. The `ToF` can be determined using the following formula:
 
 $$
 ToF = \frac{t_4 - t_1 - (t_3 - t_2) + t_6 - t_3 - (t_5 - t_4)}{4}
 $$
 
-On peut par la suite déterminer la distance entre le client et le serveur en multipliant le `ToF` à une `RANGING_UNIT`.
+We can then determine the distance between the client and the server by multiplying the `ToF` to a `RANGING_UNIT`.
 
-On remarque également ici qu’on obtient des résultats plus proche de la réalité qu’avec le protocole TWR sans compensation :
+We also notice here that we obtain results closer to reality than with the TWR protocol without compensation:
 
 ```
 ToF		d
@@ -295,11 +293,11 @@ ToF		d
 80		0.35
 ```
 
-On peut constater l’absence d’adressage dans les messages, il serait préférable de mettre en place une isolation logique pour ne recevoir que les messages qui nous concerne.
+We can see the lack of addressing in the messages, it would be better to set up a logical isolation to receive only the messages that concern us.
 
-On modifie uniquement `loop()` dans le code du *Server* et du *Client*.
+We only modify `loop()` in the *Server* and *Client* code.
 
-**Pour le serveur :**
+**For the server:**
 
 ```c
 void loop() {
@@ -358,9 +356,9 @@ void loop() {
 }
 ```
 
-Sur le code initial, nous avons choisi d’ajouter le champ d’adresse à l’indice 1 de txData afin de laisser les types de message en premier slot. On ajoute alors `txData[1] = 7;` pour avoir un “champ” d’adresse (avec `7` comme identificateur) afin d’avoir une isolation logique. Il faut faire attention de bien décaler les emplacements de $t_2$ et $t_3$ dans `TWR_ENGINE_STATE_SEND_DATA_REPLY` pour éviter d’écraser le champ d’adresse. On ajoute également la condition `if (rxData[0] == 7)` pour filtrer uniquement sur les messages qui nous concerne.
+On the initial code, we chose to add the address field at index 1 of txData in order to leave the message types in the first slot. We then add `txData[1] = 7;` to have an address "field" (with `7` as identifier) in order to have a logical isolation. Be careful to shift the locations of $t_2$ and $t_3$ in `TWR_ENGINE_STATE_SEND_DATA_REPLY` to avoid overwriting the address field. We also add the condition `if (rxData[0] == 7)` to filter only on the messages that concern us.
 
-**Pour le client :**
+**For the client:**
 
 ```c
 void loop() {
@@ -449,9 +447,9 @@ void loop() {
 }
 ```
 
-On effectue les mêmes modifications que le serveur.
+We make the same changes as the server.
 
-On obtient alors l’affichage suivant :
+We then obtain the following display:
 
 ```
 ToF	d			ToF_sk	d_sk
@@ -486,27 +484,27 @@ New TWR
 117	0.52	84	0.37
 ```
 
-On remarque que le client reçoie seulement les trames d’adresse 7.
+We notice that the client receives only the frames of address `7`.
 
-### Implémentation de 2M-TWR
+### Implementation of 2M-TWR
 
-Le protocole est le suivant :
+The protocol is as follows:
 
 <p align="center">
-  <img src="/doc/2mTwr.png" alt="2mTwr" width="700"/>
+  <img src="/doc/2mTwr.png" alt="2mTwr" width="250"/>
 </p>
 
-Le protocole 2-Messages Two-Way Ranging (`2M-TWR`) est un protocole utilisé pour déterminer la distance entre deux dispositifs à l'aide de la technique de balayage de temps d'arrivée (`ToA`). Il s'agit d'une méthode de localisation à deux dimensions qui utilise deux échanges de messages pour déterminer la distance entre les deux dispositifs.
+The 2-Messages Two-Way Ranging (`2M-TWR`) protocol is a protocol used to determine the distance between two devices using the time-of-arrival (`ToA`) scanning technique. It is a two-dimensional location method that uses two message exchanges to determine the distance between the two devices.
 
-**Pour le serveur :**
+**For the server:**
 
-Le serveur suis les mêmes étapes que celle du protocole `TWR` mais la valeur de $t_3$ est “prédite” et intégrée à l’ACK vers le client.
+The server follows the same steps as the `TWR` protocol but the value of $t_3$ is "predicted" and included in the ACK to the client.
 
-**Pour le client :**
+**For the client:**
 
-De même que pour le serveur, le client est très semblable au protocole `TWR` mais il n’attend qu’un seul message au lieu de 2.
+As for the server, the client is very similar to the `TWR` protocol but it expects only one message instead of two.
 
-On obtient alors le résultat suivant :
+We then obtain the following result:
 
 ```
 ToF	d			ToF_sk	d_sk
@@ -536,4 +534,4 @@ New 2M-TWR
 -850829275	-3763258.75	-2147483648	-9498424.00
 ```
 
-Malheureusement nous obtenons des résultats non cohérent. Cela peut être dû à une mauvaise “prédiction” de $t_3$, à des erreurs dans les mesures ou encore une erreur de transmission.
+Unfortunately we get inconsistent results. This can be due to a bad "prediction" of $t_3$, to errors in the measurements or to a transmission error.
